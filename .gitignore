@@ -1,0 +1,31 @@
+node_modules/
+.env
+node-server.*.log
+npm-debug.log*
+.next/
+
+# logs
+*.log
+*.err.log
+*.out.log
+
+# markdown
+*.md
+
+# markdown/editor cache & temp files
+.markdownlintcache
+.remarkcache
+*.md~
+*.md.bak
+*.md.tmp
+*.md.swp
+*.md.swo
+*.md.swx
+
+# local backups
+backup-*.zip
+
+# user uploads / artifacts
+uploads/
+*.pdf
+rubric_*.txt

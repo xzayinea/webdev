@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS landing_highlights (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(140) NOT NULL,
+  description TEXT NOT NULL,
+  image_path VARCHAR(255) NULL,
+  event_date DATE NOT NULL,
+  scope ENUM('public', 'students') NOT NULL DEFAULT 'public',
+  display_highlight TINYINT(1) NOT NULL DEFAULT 1,
+  created_by INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);

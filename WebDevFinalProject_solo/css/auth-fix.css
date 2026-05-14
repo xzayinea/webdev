@@ -1,0 +1,4 @@
+/* Optional helper styles for auth pages */
+.auth-card { max-width: 520px; margin: 0 auto; }
+.auth-form { margin-top: 10px; }
+

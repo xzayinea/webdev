@@ -1,0 +1,18 @@
+<%
+const sidebarName = user?.fullName || 'SyncClear User';
+const sidebarInitials = sidebarName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+const sidebarAvatar = user?.profileAvatarPath ? `/${user.profileAvatarPath}` : (user?.id ? '/account/avatar' : null);
+const sidebarSection = user?.sectionName || (user?.sectionId ? `Section ${user.sectionId}` : 'Unassigned');
+%>
+<a class="sidebar-profile" href="/account/profile" aria-label="Open profile">
+  <span class="sidebar-avatar">
+    <% if (sidebarAvatar) { %>
+      <img src="<%= sidebarAvatar %>" alt="" onerror="this.style.display='none';" onload="this.nextElementSibling.style.display='none';">
+    <% } %>
+    <strong style="<%= sidebarAvatar ? '' : '' %>"><%= sidebarInitials || 'SC' %></strong>
+  </span>
+  <span class="sidebar-user">
+    <strong><%= sidebarName %></strong>
+    <span><%= sidebarSection %> · <%= user?.role || 'user' %></span>
+  </span>
+</a>

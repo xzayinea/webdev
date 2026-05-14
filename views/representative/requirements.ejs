@@ -1,0 +1,38 @@
+<%- include('../partials/representative-header', { title, active, sectionId }) %>
+<div class="page-top"><div class="page-title"><h1>Requirement Review: <%= sectionName %></h1><p>Verify or reject uploaded requirement submissions.</p></div></div>
+<section class="panel">
+  <table class="data-table">
+    <thead><tr><th>Student</th><th>Requirement</th><th>Due</th><th>Status</th><th>Submission</th><th>Review</th></tr></thead>
+    <tbody>
+      <% submissions.forEach((submission) => { %>
+        <tr>
+          <td><strong><%= submission.full_name %></strong><br><span class="muted"><%= submission.student_id || '' %> · <%= submission.role %></span></td>
+          <td><strong><%= submission.requirement_name %></strong><% if (submission.description) { %><br><span class="muted"><%= submission.description %></span><% } %></td>
+          <td><%= submission.due_date ? new Date(submission.due_date).toLocaleDateString() : 'No due date' %></td>
+          <td><span class="badge <%= submission.submission_status %>"><%= submission.submission_status %></span></td>
+          <td>
+            <% if (submission.submission_path) { %>
+              <a class="btn-outline small" target="_blank" href="/<%= submission.submission_path %>">Preview / Download</a><br>
+              <span class="muted"><%= submission.submission_note || '' %></span>
+            <% } else { %>
+              <span class="muted">No upload yet</span>
+            <% } %>
+            <% if (submission.reviewed_note) { %><p class="muted">Review note: <%= submission.reviewed_note %></p><% } %>
+          </td>
+          <td>
+            <% if (submission.submission_status === 'submitted') { %>
+              <form class="action-stack" action="/api/requirements/review" method="POST" onsubmit="return confirm('Save this review?');">
+                <input type="hidden" name="assignment_id" value="<%= submission.assignment_id %>">
+                <input type="hidden" name="section_id" value="<%= sectionId %>">
+                <textarea name="reviewed_note" placeholder="Optional review note"></textarea>
+                <button class="btn small" type="submit" name="submission_status" value="verified">Verify</button>
+                <button class="btn-danger small" type="submit" name="submission_status" value="rejected">Reject</button>
+              </form>
+            <% } else { %><span class="muted">No action available</span><% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/app-footer') %>

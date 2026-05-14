@@ -1,0 +1,154 @@
+<%- include('../partials/executive-header', { title, active }) %>
+<div class="page-top"><div class="page-title"><h1>Students</h1><p>Add students and review requirement and payment completion.</p></div></div>
+
+<section class="panel pad">
+  <form class="form-grid" action="/executive/actions" method="POST">
+    <input type="hidden" name="action" value="add_user">
+    <input type="hidden" name="role" value="student">
+    <input type="hidden" name="return_to" value="students">
+    <div><label>Student Name</label><input type="text" name="full_name" required></div>
+    <div><label>Student ID</label><input type="text" name="student_id" required></div>
+    <div><label>Email</label><input type="email" name="email" required></div>
+    <div><label>Temporary Password</label><input type="password" name="password" required></div>
+    <div><label>Section</label><select name="section_id" required><option value="">Select section</option><% sections.forEach((s) => { %><option value="<%= s.id %>"><%= s.section_name %></option><% }) %></select></div>
+    <button class="btn" type="submit">Add Student</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2 class="panel-title">Student Compliance</h2>
+  <form class="filter-bar" method="GET">
+    <input type="text" name="q" placeholder="Search student" value="<%= filters.search %>">
+    <select name="section_id">
+      <option value="">All sections</option>
+      <% sections.forEach((section) => { %>
+        <option value="<%= section.id %>" <%= Number(filters.sectionId) === Number(section.id) ? 'selected' : '' %>><%= section.section_name %></option>
+      <% }) %>
+    </select>
+    <select name="role">
+      <option value="">All roles</option>
+      <% ['student', 'representative', 'rep', 'executive'].forEach((role) => { %>
+        <option value="<%= role %>" <%= filters.role === role ? 'selected' : '' %>><%= role %></option>
+      <% }) %>
+    </select>
+    <select name="requirement_status">
+      <option value="">Any requirement status</option>
+      <option value="pending" <%= filters.requirementStatus === 'pending' ? 'selected' : '' %>>Incomplete</option>
+      <option value="complete" <%= filters.requirementStatus === 'complete' ? 'selected' : '' %>>Complete</option>
+    </select>
+    <select name="payment_status">
+      <option value="">Any payment status</option>
+      <option value="unpaid" <%= filters.paymentStatus === 'unpaid' ? 'selected' : '' %>>Has balance</option>
+      <option value="paid" <%= filters.paymentStatus === 'paid' ? 'selected' : '' %>>Fully paid</option>
+    </select>
+    <button class="btn small" type="submit">Filter</button>
+    <a class="btn-outline small" href="/executive/students">Reset</a>
+  </form>
+  <table class="data-table">
+    <thead><tr><th>Student</th><th>Section</th><th>Role</th><th>Requirements</th><th>Payments</th><th>Balance</th><th>Action</th></tr></thead>
+    <tbody>
+      <% students.forEach((student) => { %>
+        <% const issues = issuesByStudent[student.id] || { requirements: [], money: [], submitted: [] }; %>
+        <% const totalLacking = issues.requirements.length + issues.money.length; %>
+        <tr>
+          <td><strong><%= student.full_name %></strong><br><span class="muted"><%= student.student_id || '' %></span></td>
+          <td><%= student.section_name %></td>
+          <td><span class="badge yellow"><%= student.role %></span></td>
+          <td><%= student.requirement_verified %> / <%= student.requirement_total %></td>
+          <td><%= student.money_paid %> / <%= student.money_total %></td>
+          <td>PHP <%= Number(student.unpaid_balance || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %></td>
+          <td class="action-stack">
+            <button class="btn small" type="button" onclick="document.getElementById('student-state-<%= student.id %>').showModal()">Manage</button>
+            <dialog class="state-modal" id="student-state-<%= student.id %>">
+              <form method="dialog" class="modal-close-form"><button class="btn-outline small" type="submit">Close</button></form>
+              <div class="modal-head">
+                <div>
+                  <h2><%= student.full_name %></h2>
+                  <p class="muted"><%= student.student_id || 'No student ID' %> &middot; <%= student.section_name %> &middot; <%= student.role %></p>
+                </div>
+                <span class="badge <%= totalLacking > 0 ? 'red' : 'green' %>"><%= totalLacking > 0 ? totalLacking + ' lacking' : 'complete' %></span>
+              </div>
+              <div class="modal-metrics">
+                <article><span>Requirements</span><strong><%= student.requirement_verified %> / <%= student.requirement_total %></strong></article>
+                <article><span>Payments</span><strong><%= student.money_paid %> / <%= student.money_total %></strong></article>
+                <article><span>Balance</span><strong>PHP <%= Number(student.unpaid_balance || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %></strong></article>
+              </div>
+              <div class="modal-grid">
+                <section>
+                  <h3>Requirement Lackings</h3>
+                  <% issues.requirements.forEach((item) => { %>
+                    <article class="issue-row">
+                      <div>
+                        <strong><%= item.requirement_name %></strong>
+                        <p class="muted"><%= item.description || 'No instructions' %></p>
+                        <% if (item.reviewed_note) { %><p class="muted">Comment: <%= item.reviewed_note %></p><% } %>
+                      </div>
+                      <span class="badge <%= item.submission_status %>"><%= item.submission_status %></span>
+                    </article>
+                  <% }) %>
+                  <% if (!issues.requirements.length) { %><p class="muted">No missing upload requirements.</p><% } %>
+                </section>
+                <section>
+                  <h3>Payment / Fine Lackings</h3>
+                  <% issues.money.forEach((item) => { %>
+                    <article class="issue-row">
+                      <div>
+                        <strong><%= item.requirement_name %></strong>
+                        <p class="muted"><%= item.requirement_type %> &middot; PHP <%= Number(item.amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %></p>
+                        <% if (item.reviewed_note) { %><p class="muted">Comment: <%= item.reviewed_note %></p><% } %>
+                      </div>
+                      <span class="badge <%= item.payment_status %>"><%= item.payment_status %></span>
+                    </article>
+                  <% }) %>
+                  <% if (!issues.money.length) { %><p class="muted">No unpaid payment or fine tasks.</p><% } %>
+                </section>
+              </div>
+              <% if (issues.submitted.length) { %>
+                <section class="modal-section">
+                  <h3>Awaiting Representative Review</h3>
+                  <% issues.submitted.forEach((item) => { %>
+                    <article class="issue-row">
+                      <strong><%= item.requirement_name %></strong>
+                      <span class="badge submitted">submitted</span>
+                    </article>
+                  <% }) %>
+                </section>
+              <% } %>
+              <div class="modal-actions">
+                <a class="btn small" href="/representative/requirements?id=<%= student.section_id %>">Open Reviews</a>
+                <a class="btn-outline small" href="/representative/payments?id=<%= student.section_id %>">Open Payments</a>
+                <a class="btn-outline small" href="/representative/section-detail?id=<%= student.section_id %>">Section Detail</a>
+              </div>
+            </dialog>
+            <details>
+              <summary class="btn-outline small">Edit</summary>
+              <form class="inline-edit" action="/executive/actions" method="POST">
+                <input type="hidden" name="action" value="update_user">
+                <input type="hidden" name="user_id" value="<%= student.id %>">
+                <input type="hidden" name="return_to" value="students">
+                <input type="text" name="full_name" value="<%= student.full_name %>" required>
+                <input type="text" name="student_id" value="<%= student.student_id || '' %>">
+                <input type="email" name="email" value="<%= student.email %>" required>
+                <select name="section_id"><% sections.forEach((s) => { %><option value="<%= s.id %>" <%= Number(student.section_id) === Number(s.id) ? 'selected' : '' %>><%= s.section_name %></option><% }) %></select>
+                <button class="btn small" type="submit">Save</button>
+              </form>
+            </details>
+            <% if (student.role === 'student') { %>
+              <form action="/executive/actions" method="POST" onsubmit="return confirm('Remove this student account and all assignments?');">
+                <input type="hidden" name="action" value="delete_student">
+                <input type="hidden" name="user_id" value="<%= student.id %>">
+                <input type="hidden" name="return_to" value="students">
+                <button class="btn-danger small" type="submit">Remove Student</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!students.length) { %>
+        <tr><td colspan="7" class="muted">No students match the current filters.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+  <%- include('../partials/pagination', { pagination, pageUrl }) %>
+</section>
+<%- include('../partials/app-footer') %>

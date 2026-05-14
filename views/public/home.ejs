@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SyncClear - Student Organization Clearance Platform</title>
+  <!-- Bootstrap CSS Framework -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/landing.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="public-body">
+  <header class="public-nav">
+    <a class="public-brand" href="/">
+      <div class="brand-logo">SC</div>
+      <span>SyncClear</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#about" class="nav-link">About</a>
+      <a class="btn-login" href="/login">Login</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-copy">
+          <h1 class="hero-title">Streamline Your <strong>Clearance Process</strong></h1>
+          <p class="hero-subtitle">A modern platform designed for students, representatives, and executives to manage organization clearance with transparency and efficiency.</p>
+          <div class="hero-buttons">
+            <a class="btn-primary" href="/login">Get Started</a>
+          </div>
+        </div>
+
+        <div class="hero-mv" aria-label="Organization mission and vision">
+          <div class="hero-mv-card">
+            <h2>Mission</h2>
+            <ul>
+              <li>This organization mission statement goes here.</li>
+            </ul>
+          </div>
+          <div class="hero-mv-card">
+            <h2>Vision</h2>
+            <ul>
+              <li>This organization vision statement goes here.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="announcements-section-header">
+        <p class="eyebrow">Featured Events & Announcements</p>
+        <h2>Recent Organization Activities</h2>
+      </div>
+      <div class="hero-visual">
+        <% 
+          // Always show 3 slots, mapping them by card_position
+          for (let i = 1; i <= 3; i++) { 
+            const highlight = (highlights && highlights.find(h => h.card_position === i)) || {};
+        %>
+          <div class="floating-card card-<%= i %>" <% if (highlight.id) { %>onclick="openAnnouncementModal(this)" data-id="<%= highlight.id %>" data-title="<%= highlight.title %>" data-description="<%= highlight.description %>" data-date="<%= new Date(highlight.event_date).toLocaleDateString() %>" data-type="<%= highlight.type %>" data-image="<%= highlight.image_path %>"<% } %> style="<% if (highlight.image_path) { %>background-image: url('<%= highlight.image_path %>'); background-size: cover; background-position: center;<% } else { %>background: linear-gradient(135deg, #2f80ed, #1d63c4);<% } %>">
+            <% if (highlight.id) { %>
+              <div class="card-header">
+                <div class="card-type-badge"><%= highlight.type %></div>
+                <span class="card-date"><%= new Date(highlight.event_date).toLocaleDateString() %></span>
+              </div>
+              <div class="card-content">
+                <h4><%= highlight.title %></h4>
+                <p><%= highlight.description.substring(0, 100) %><%= highlight.description.length > 100 ? '...' : '' %></p>
+              </div>
+            <% } %>
+          </div>
+        <% } %>
+      </div>
+    </section>
+
+    <!-- Announcement Modal -->
+    <div id="announcementModal" class="announcement-modal" onclick="closeAnnouncementModal(event)">
+      <div class="announcement-modal-content" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="closeAnnouncementModal()">&times;</button>
+        <div class="announcement-modal-image" id="modalImage"></div>
+        <div class="announcement-modal-body">
+          <div class="announcement-type-badge" id="modalType"></div>
+          <h2 id="modalTitle"></h2>
+          <p class="announcement-date" id="modalDate"></p>
+          <p id="modalDescription"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- About Section -->
+    <section class="about" id="about">
+      <div class="about-content">
+        <div class="about-text">
+          <h2>Why Choose SyncClear?</h2>
+          <div class="about-item">
+            <h4>Centralized Platform</h4>
+            <p>All clearance information in one place, accessible to all stakeholders.</p>
+          </div>
+          <div class="about-item">
+            <h4>Transparency</h4>
+            <p>Clear visibility into requirements and progress for all parties involved.</p>
+          </div>
+          <div class="about-item">
+            <h4>Efficiency</h4>
+            <p>Reduce processing time and eliminate manual paperwork.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+      <h2>Ready to Get Started?</h2>
+      <p>Join hundreds of students and organizations using SyncClear today.</p>
+      <a class="btn-primary btn-large" href="/login">Login to Your Account</a>
+    </section>
+  </main>
+
+  <footer class="public-footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h4>SyncClear</h4>
+        <p>Making clearance simple and transparent.</p>
+      </div>
+      <div class="footer-section">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="/login">Login</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Contact</h4>
+        <p>support@syncclear.edu</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 SyncClear. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    function openAnnouncementModal(element) {
+      const modal = document.getElementById('announcementModal');
+      const title = element.dataset.title;
+      const description = element.dataset.description;
+      const date = element.dataset.date;
+      const type = element.dataset.type;
+      const image = element.dataset.image;
+
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalDescription').textContent = description;
+      document.getElementById('modalDate').textContent = date;
+      
+      const typeBadge = document.getElementById('modalType');
+      typeBadge.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+      typeBadge.className = `announcement-type-badge ${type}`;
+
+      const modalImage = document.getElementById('modalImage');
+      if (image) {
+        modalImage.style.backgroundImage = `url('${image}')`;
+      } else {
+        modalImage.style.backgroundImage = '';
+      }
+
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeAnnouncementModal(event) {
+      if (event && event.target.id !== 'announcementModal') return;
+      
+      const modal = document.getElementById('announcementModal');
+      modal.classList.remove('active');
+      document.body.style.overflow = 'auto';
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeAnnouncementModal();
+      }
+    });
+  </script>
+</body>
+</html>
+

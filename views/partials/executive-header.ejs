@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - SyncClear</title>
+  <!-- Bootstrap CSS Framework -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/public/node.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="app-body">
+  <div class="executive-shell">
+    <nav class="executive-nav">
+      <div class="nav-brand">
+        <a class="brand-link" href="/executive/dashboard">SyncClear</a>
+      </div>
+      <%- include('sidebar-profile') %>
+      <div class="nav-list">
+        <% [
+          ['dashboard', 'Dashboard', '/executive/dashboard'],
+          ['sections', 'Sections', '/executive/sections'],
+          ['students', 'Students', '/executive/students'],
+          ['tasks', 'Tasks', '/executive/tasks'],
+          ['student-actions', 'My Student Actions', '/executive/student-actions'],
+          ['audit', 'Audit Trail', '/executive/audit'],
+          ['profile', 'My Profile', '/account/profile'],
+          ['settings', 'Settings', '/executive/settings']
+        ].forEach((item) => { %>
+          <a class="nav-item <%= active === item[0] ? 'active' : '' %>" href="<%= item[2] %>"><%= item[1] %></a>
+        <% }) %>
+        <form action="/auth/logout" method="POST" class="signout-form">
+          <button class="nav-item signout" type="submit">Sign Out</button>
+        </form>
+      </div>
+    </nav>
+    <main class="executive-main">
+      <% if (success.length) { %><div class="flash success"><%= success[0] %></div><% } %>
+      <% if (error.length) { %><div class="flash error"><%= error[0] %></div><% } %>

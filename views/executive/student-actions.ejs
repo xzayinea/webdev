@@ -1,0 +1,68 @@
+<%- include('../partials/executive-header', { title, active }) %>
+<%
+const verified = requirements.filter((r) => r.submission_status === 'verified').length;
+const submitted = requirements.filter((r) => r.submission_status === 'submitted').length;
+const unpaid = moneyTasks.filter((t) => t.payment_status !== 'paid').reduce((sum, t) => sum + Number(t.amount || 0), 0);
+const paid = moneyTasks.filter((t) => t.payment_status === 'paid').length;
+const clearance = verified === requirements.length && unpaid <= 0 ? 'cleared' : unpaid > 0 ? 'has_fines' : 'pending';
+%>
+<div class="page-top">
+  <div class="page-title">
+    <h1>My Student Actions</h1>
+    <p>Complete your own assigned requirements, payments, and fines.</p>
+  </div>
+</div>
+
+<div class="summary-grid">
+  <div class="summary-card"><h4>Requirements</h4><strong><%= verified %> / <%= requirements.length %></strong></div>
+  <div class="summary-card"><h4>Pending Review</h4><strong><%= submitted %></strong></div>
+  <div class="summary-card"><h4>Payments & Fines</h4><strong>PHP <%= unpaid.toLocaleString(undefined, {minimumFractionDigits: 2}) %></strong><span class="badge <%= unpaid > 0 ? 'unpaid' : 'paid' %>"><%= paid %> / <%= moneyTasks.length %> paid</span></div>
+  <div class="summary-card"><h4>Clearance</h4><strong><%= clearance === 'cleared' ? 'Cleared' : 'Pending' %></strong><span class="badge <%= clearance %>"><%= clearance %></span></div>
+</div>
+
+<section class="panel pad">
+  <h2 class="panel-title compact-title">My Requirements</h2>
+  <% requirements.forEach((requirement) => { %>
+    <article class="panel pad">
+      <h3><%= requirement.requirement_name %></h3>
+      <% if (requirement.description) { %><p class="muted"><%= requirement.description %></p><% } %>
+      <p class="muted">Due: <%= requirement.due_date ? new Date(requirement.due_date).toLocaleDateString() : 'No due date' %></p>
+      <span class="badge <%= requirement.submission_status %>"><%= requirement.submission_status %></span>
+      <% if (requirement.submission_path) { %><p><a class="btn-outline small" target="_blank" href="/<%= requirement.submission_path %>">View submitted file</a></p><% } %>
+      <% if (requirement.reviewed_note) { %><p class="muted">Review note: <%= requirement.reviewed_note %></p><% } %>
+      <% if (requirement.submission_status !== 'verified') { %>
+        <form class="action-stack" action="/student/requirements/upload" method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="assignment_id" value="<%= requirement.assignment_id %>">
+          <textarea name="submission_note" placeholder="Optional note"><%= requirement.submission_note || '' %></textarea>
+          <input type="file" name="submission" accept=".pdf,.jpg,.jpeg,.png" required>
+          <button class="btn" type="submit"><%= requirement.submission_status === 'submitted' ? 'Replace Submission' : 'Upload Requirement' %></button>
+        </form>
+      <% } %>
+    </article>
+  <% }) %>
+  <% if (!requirements.length) { %><p class="muted">No assigned upload requirements.</p><% } %>
+</section>
+
+<section class="panel pad">
+  <h2 class="panel-title compact-title">Payments & Fines</h2>
+  <% moneyTasks.forEach((task) => { %>
+    <article class="panel pad">
+      <h3><%= task.requirement_name %></h3>
+      <p class="muted"><%= task.requirement_type %> &middot; PHP <%= Number(task.amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %> &middot; <%= task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date' %></p>
+      <span class="badge <%= task.payment_status %>"><%= task.payment_status %></span>
+      <span class="badge <%= task.submission_status %>"><%= task.submission_status %></span>
+      <% if (task.submission_path) { %><p><a class="btn-outline small" target="_blank" href="/<%= task.submission_path %>">View payment proof</a></p><% } %>
+      <% if (task.reviewed_note) { %><p class="muted">Review note: <%= task.reviewed_note %></p><% } %>
+      <% if (task.payment_status !== 'paid') { %>
+        <form class="action-stack" action="/student/payments/upload" method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="assignment_id" value="<%= task.assignment_id %>">
+          <textarea name="submission_note" placeholder="Transaction reference or note"><%= task.submission_note || '' %></textarea>
+          <input type="file" name="submission" accept=".pdf,.jpg,.jpeg,.png" required>
+          <button class="btn" type="submit"><%= task.submission_status === 'submitted' ? 'Replace Payment Proof' : 'Upload Payment Proof' %></button>
+        </form>
+      <% } %>
+    </article>
+  <% }) %>
+  <% if (!moneyTasks.length) { %><p class="muted">No assigned payment or fine tasks.</p><% } %>
+</section>
+<%- include('../partials/app-footer') %>

@@ -1,0 +1,128 @@
+<%- include('../partials/executive-header', { title, active }) %>
+<div class="page-top"><div class="page-title"><h1>Settings</h1><p>Create representatives and executives.</p></div></div>
+<section class="panel pad">
+  <form class="form-grid" action="/executive/actions" method="POST">
+    <input type="hidden" name="action" value="add_user">
+    <input type="hidden" name="return_to" value="settings">
+    <div><label>Name</label><input type="text" name="full_name" required></div>
+    <div><label>Student ID</label><input type="text" name="student_id"></div>
+    <div><label>Email</label><input type="email" name="email" required></div>
+    <div><label>Password</label><input type="password" name="password" required></div>
+    <div><label>Role</label><select name="role"><option value="representative">Representative</option><option value="executive">Executive</option><option value="student">Student</option></select></div>
+    <div><label>Section</label><select name="section_id" required><% sections.forEach((s) => { %><option value="<%= s.id %>"><%= s.section_name %></option><% }) %></select></div>
+    <button class="btn" type="submit">Create Account</button>
+  </form>
+</section>
+<section class="panel">
+  <h2 class="panel-title">Accounts</h2>
+  <div class="panel pad" style="margin: 0 0 12px;">
+    <div class="form-grid" style="align-items: end;">
+      <div>
+        <label>Search</label>
+        <input type="text" id="accountsFilterSearch" placeholder="Name, email, or student ID">
+      </div>
+      <div>
+        <label>Role</label>
+        <select id="accountsFilterRole">
+          <option value="">All roles</option>
+          <option value="executive">Executive</option>
+          <option value="representative">Representative</option>
+          <option value="student">Student</option>
+        </select>
+      </div>
+      <div>
+        <label>Section</label>
+        <select id="accountsFilterSection">
+          <option value="">All sections</option>
+          <% sections.forEach((s) => { %>
+            <option value="<%= s.id %>"><%= s.section_name %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="muted" id="accountsFilterCount" style="padding-bottom: 10px;"></div>
+    </div>
+  </div>
+  <table class="data-table">
+    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Section</th><th>Change role / section</th></tr></thead>
+    <tbody>
+      <% users.forEach((account) => { %>
+        <tr
+          class="account-row"
+          data-name="<%= String(account.full_name || '').toLowerCase() %>"
+          data-email="<%= String(account.email || '').toLowerCase() %>"
+          data-student-id="<%= String(account.student_id || '').toLowerCase() %>"
+          data-role="<%= String(account.role || '').toLowerCase() %>"
+          data-section-id="<%= Number(account.section_id || 0) %>"
+        >
+          <td><%= account.full_name %><br><span class="muted"><%= account.student_id || '' %></span></td>
+          <td><%= account.email %></td>
+          <td><span class="badge yellow"><%= account.role %></span></td>
+          <td><%= account.section_name %></td>
+          <td>
+            <form class="inline-row-form" action="/executive/actions" method="POST">
+              <input type="hidden" name="action" value="elevate_user">
+              <input type="hidden" name="user_id" value="<%= account.id %>">
+              <select name="role" required>
+                <% if (!['executive','representative'].includes(String(account.role || '').toLowerCase())) { %>
+                  <option value="" selected disabled>Select role</option>
+                <% } %>
+                <option value="representative" <%= String(account.role || '').toLowerCase() === 'representative' ? 'selected' : '' %>>Representative</option>
+                <option value="executive" <%= String(account.role || '').toLowerCase() === 'executive' ? 'selected' : '' %>>Executive</option>
+              </select>
+              <select name="section_id" required>
+                <% sections.forEach((section) => { %>
+                  <option value="<%= section.id %>" <%= Number(account.section_id) === Number(section.id) ? 'selected' : '' %>><%= section.section_name %></option>
+                <% }) %>
+              </select>
+              <button class="btn small" type="submit">Apply</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+
+<script>
+  (function initAccountsFilters() {
+    const searchInput = document.getElementById('accountsFilterSearch');
+    const roleSelect = document.getElementById('accountsFilterRole');
+    const sectionSelect = document.getElementById('accountsFilterSection');
+    const countEl = document.getElementById('accountsFilterCount');
+    const rows = Array.from(document.querySelectorAll('tr.account-row'));
+
+    const normalize = (value) => String(value || '').trim().toLowerCase();
+
+    const apply = () => {
+      const q = normalize(searchInput?.value);
+      const role = normalize(roleSelect?.value);
+      const sectionId = String(sectionSelect?.value || '').trim();
+
+      let shown = 0;
+      for (const row of rows) {
+        const name = row.dataset.name || '';
+        const email = row.dataset.email || '';
+        const studentId = row.dataset.studentId || '';
+        const rowRole = normalize(row.dataset.role);
+        const rowSectionId = String(row.dataset.sectionId || '').trim();
+
+        const matchesQuery = !q || name.includes(q) || email.includes(q) || studentId.includes(q);
+        const matchesRole = !role || rowRole === role;
+        const matchesSection = !sectionId || rowSectionId === sectionId;
+
+        const visible = matchesQuery && matchesRole && matchesSection;
+        row.style.display = visible ? '' : 'none';
+        if (visible) shown++;
+      }
+
+      if (countEl) countEl.textContent = `Showing ${shown} of ${rows.length}`;
+    };
+
+    searchInput?.addEventListener('input', apply);
+    roleSelect?.addEventListener('change', apply);
+    sectionSelect?.addEventListener('change', apply);
+
+    apply();
+  })();
+</script>
+<%- include('../partials/app-footer') %>

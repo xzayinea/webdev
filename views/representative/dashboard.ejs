@@ -1,0 +1,11 @@
+<%- include('../partials/representative-header', { title, active, sectionId }) %>
+<% const pct = (a, b) => Number(b) > 0 ? Math.round((Number(a) / Number(b)) * 100) : 0; %>
+<div class="page-top"><div class="page-title"><h1>Representative Dashboard</h1><p><%= sectionName %> section overview and review shortcuts.</p></div></div>
+<div class="summary-grid">
+  <div class="summary-card"><h4>Members</h4><strong><%= summary.member_count || 0 %></strong><span class="muted">Active section members</span></div>
+  <div class="summary-card"><h4>Requirement Completion</h4><strong><%= pct(summary.requirement_verified, summary.requirement_total) %>%</strong><div class="progress"><span style="width:<%= pct(summary.requirement_verified, summary.requirement_total) %>%"></span></div></div>
+  <div class="summary-card"><h4>Pending Reviews</h4><strong><%= summary.pending_reviews || 0 %></strong><a class="btn-outline small" href="/representative/tasks?id=<%= sectionId %>&status=submitted">Open</a></div>
+  <div class="summary-card"><h4>Payment Collection</h4><strong><%= pct(summary.money_paid, summary.money_total) %>%</strong><div class="progress"><span style="width:<%= pct(summary.money_paid, summary.money_total) %>%"></span></div></div>
+  <div class="summary-card"><h4>Outstanding Balance</h4><strong>PHP <%= Number(summary.unpaid_balance || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %></strong><a class="btn-outline small" href="/representative/tasks?id=<%= sectionId %>&status=unpaid">Open</a></div>
+</div>
+<%- include('../partials/app-footer') %>

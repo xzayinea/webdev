@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <!-- Bootstrap CSS Framework -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="auth-body">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1 class="brand-title">SyncClear</h1>
+        <p class="subtitle" id="form-subtitle"><%= initialMode === 'register' ? 'Join your student organization platform' : 'Welcome back to SyncClear' %></p>
+      </div>
+
+    <% if (success.length) { %><div class="alert alert-success"><%= success[0] %></div><% } %>
+    <% if (error.length) { %><div class="alert alert-error"><%= error[0] %></div><% } %>
+
+    <form action="/auth/register" method="POST" id="register-form" class="<%= initialMode === 'register' ? '' : 'hidden' %>">
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name</label>
+          <input type="text" name="first_name" placeholder="MARC" required>
+        </div>
+        <div class="form-group">
+          <label>Last Name</label>
+          <input type="text" name="last_name" placeholder="Joel" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Username (Student ID)</label>
+        <div class="input-with-icon">
+          <span class="prefix">@</span>
+          <input type="text" name="username" placeholder="DEUS" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" required>
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" name="confirm_password" required>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="terms" required>
+        <label for="terms">I agree to the Terms of Service and Privacy Policy. I confirm that I am a registered student.</label>
+      </div>
+      <button type="submit" class="btn-primary">Create Account</button>
+      <p class="footer-text">Already have an account? <a onclick="toggleForms()">Sign in here</a></p>
+    </form>
+
+    <form action="/auth/login" method="POST" id="login-form" class="<%= initialMode === 'register' ? 'hidden' : '' %>">
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" required>
+      </div>
+      <button type="submit" class="btn-primary">Sign In</button>
+      <p class="footer-text">Do not have an account? <a onclick="toggleForms()">Create one here</a></p>
+      <p class="footer-text"><a href="/">Back to public homepage</a></p>
+    </form>
+    </div>
+
+    <aside class="auth-cta-card" aria-label="SyncClear information">
+      <h2 class="auth-cta-title" id="cta-title">Manage your student org in one place</h2>
+      <p class="auth-cta-subtitle" id="cta-subtitle">Track members, coordinate events, and keep everything organized with SyncClear.</p>
+      <ul class="auth-cta-list">
+        <li>Member directory and profiles</li>
+        <li>Announcements and updates</li>
+        <li>Event coordination and reporting</li>
+      </ul>
+      <div class="auth-cta-actions">
+        <button type="button" class="btn-primary" id="cta-primary" onclick="toggleForms()">Create an account</button>
+        <a class="btn-secondary" href="/">Back to homepage</a>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    function updateCta() {
+      const regForm = document.getElementById('register-form');
+      const primary = document.getElementById('cta-primary');
+      const title = document.getElementById('cta-title');
+      const subtitle = document.getElementById('cta-subtitle');
+      if (!regForm || !primary || !title || !subtitle) return;
+
+      const isRegister = !regForm.classList.contains('hidden');
+      primary.innerText = isRegister ? 'Sign in' : 'Create an account';
+      title.innerText = isRegister ? 'Already have an account?' : 'Manage your student org in one place';
+      subtitle.innerText = isRegister
+        ? 'Sign in to access your dashboard and continue where you left off.'
+        : 'Track members, coordinate events, and keep everything organized with SyncClear.';
+    }
+
+    function toggleForms() {
+      const regForm = document.getElementById('register-form');
+      const logForm = document.getElementById('login-form');
+      const subtitle = document.getElementById('form-subtitle');
+      regForm.classList.toggle('hidden');
+      logForm.classList.toggle('hidden');
+      subtitle.innerText = regForm.classList.contains('hidden') ? 'Welcome back to SyncClear' : 'Join your student organization platform';
+      updateCta();
+    }
+
+    updateCta();
+  </script>
+</body>
+</html>

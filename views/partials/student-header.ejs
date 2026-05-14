@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - SyncClear</title>
+  <!-- Bootstrap CSS Framework -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/public/node.css">
+</head>
+<body class="app-body">
+  <div class="executive-shell">
+    <nav class="executive-nav">
+      <div class="nav-brand"><a class="brand-link" href="/student/dashboard">SyncClear</a></div>
+      <%- include('sidebar-profile') %>
+      <div class="nav-list">
+        <a class="nav-item <%= active === 'dashboard' ? 'active' : '' %>" href="/student/dashboard">Dashboard</a>
+        <a class="nav-item <%= active === 'profile' ? 'active' : '' %>" href="/account/profile">My Profile</a>
+        <form action="/auth/logout" method="POST" class="signout-form">
+          <button class="nav-item signout" type="submit">Sign Out</button>
+        </form>
+      </div>
+    </nav>
+    <main class="executive-main">
+      <% if (success.length) { %><div class="flash success"><%= success[0] %></div><% } %>
+      <% if (error.length) { %><div class="flash error"><%= error[0] %></div><% } %>

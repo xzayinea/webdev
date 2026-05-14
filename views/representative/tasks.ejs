@@ -1,0 +1,135 @@
+<%- include('../partials/representative-header', { title, active, sectionId }) %>
+<%
+const typeLabel = (type) => type === 'payment' ? 'Payment' : type === 'fine' ? 'Fine' : 'Requirement';
+const dueLabel = (value) => value ? new Date(value).toLocaleDateString() : 'No due date';
+const isMoney = (task) => ['payment', 'fine'].includes(task.requirement_type);
+const needsReview = (task) => task.requirement_type === 'requirement' && task.submission_status === 'submitted';
+const needsPaymentReview = (task) => isMoney(task);
+const counts = tasks.reduce((total, task) => {
+  total.all += 1;
+  if (task.submission_status === 'submitted') total.submitted += 1;
+  if (task.status === 'unpaid' && isMoney(task)) total.unpaid += 1;
+  if (task.submission_status === 'verified' || task.status === 'paid') total.done += 1;
+  return total;
+}, { all: 0, submitted: 0, unpaid: 0, done: 0 });
+%>
+<div class="page-top rep-tasks-hero">
+  <div class="page-title">
+    <p class="eyebrow">Section review</p>
+    <h1>Tasks: <%= sectionName %></h1>
+    <p>Review requirement uploads, payment proof, and fine status from one queue.</p>
+  </div>
+</div>
+
+<section class="section-overview-grid rep-review-summary">
+  <article><span>Total Tasks</span><strong><%= counts.all %></strong></article>
+  <article><span>Needs Review</span><strong><%= counts.submitted %></strong></article>
+  <article><span>Unpaid Money Tasks</span><strong><%= counts.unpaid %></strong></article>
+  <article><span>Closed</span><strong><%= counts.done %></strong></article>
+</section>
+
+<section class="panel rep-review-panel">
+  <form class="filter-bar rep-review-filter" method="GET">
+    <input type="hidden" name="id" value="<%= sectionId %>">
+    <select name="type">
+      <option value="">All types</option>
+      <option value="requirement" <%= filters.type === 'requirement' ? 'selected' : '' %>>Requirement</option>
+      <option value="payment" <%= filters.type === 'payment' ? 'selected' : '' %>>Payment</option>
+      <option value="fine" <%= filters.type === 'fine' ? 'selected' : '' %>>Fine</option>
+    </select>
+    <select name="status">
+      <option value="">All statuses</option>
+      <option value="submitted" <%= filters.status === 'submitted' ? 'selected' : '' %>>Submitted</option>
+      <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending upload</option>
+      <option value="verified" <%= filters.status === 'verified' ? 'selected' : '' %>>Verified</option>
+      <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+      <option value="unpaid" <%= filters.status === 'unpaid' ? 'selected' : '' %>>Unpaid</option>
+      <option value="paid" <%= filters.status === 'paid' ? 'selected' : '' %>>Paid</option>
+    </select>
+    <button class="btn small" type="submit">Filter</button>
+    <a class="btn-outline small" href="/representative/tasks?id=<%= sectionId %>">Reset</a>
+  </form>
+
+  <div class="rep-review-list">
+    <% tasks.forEach((task) => { %>
+      <article class="rep-review-card">
+        <div class="rep-review-main">
+          <div class="rep-review-student">
+            <span class="review-avatar">
+              <% const taskAvatar = task.profile_avatar_path ? `/${task.profile_avatar_path}` : null; %>
+              <% if (taskAvatar) { %>
+                <img src="<%= taskAvatar %>" alt="" onerror="this.style.display='none';" onload="this.nextElementSibling.style.display='none';">
+              <% } %>
+              <strong><%= task.full_name.split(/\\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'SC' %></strong>
+            </span>
+            <div>
+              <strong><a class="rep-review-profile-name" href="/account/profile/<%= task.student_user_id %>" target="_blank" rel="noopener"><%= task.full_name %></a></strong>
+              <a class="rep-review-profile-link" href="/account/profile/<%= task.student_user_id %>" target="_blank" rel="noopener">View profile</a>
+              <span><%= task.student_id || 'No ID' %> · <%= task.role %></span>
+            </div>
+          </div>
+
+          <div class="rep-review-task">
+            <div class="rep-review-title-line">
+              <h2><%= task.requirement_name %></h2>
+              <span class="badge <%= task.requirement_type === 'fine' ? 'red' : task.requirement_type === 'payment' ? 'yellow' : 'submitted' %>"><%= typeLabel(task.requirement_type) %></span>
+            </div>
+            <% if (task.description) { %><p><%= task.description %></p><% } %>
+            <div class="rep-review-meta">
+              <span>Due: <%= dueLabel(task.due_date) %></span>
+              <% if (isMoney(task)) { %><span>Amount: PHP <%= Number(task.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) %></span><% } %>
+            </div>
+          </div>
+
+          <div class="rep-review-proof">
+            <div>
+              <span class="badge <%= task.submission_status %>"><%= task.submission_status %></span>
+              <% if (isMoney(task)) { %><span class="badge <%= task.status %>"><%= task.status %></span><% } %>
+            </div>
+            <% if (task.submission_path) { %>
+              <a class="btn-outline small" target="_blank" href="/<%= task.submission_path %>">Preview / Download</a>
+              <% if (task.submission_note) { %><p class="muted"><%= task.submission_note %></p><% } %>
+            <% } else { %>
+              <p class="muted">No upload yet.</p>
+            <% } %>
+            <% if (task.reviewed_note) { %><p class="muted">Review note: <%= task.reviewed_note %></p><% } %>
+          </div>
+        </div>
+
+        <div class="rep-review-actions">
+          <% if (needsReview(task)) { %>
+            <form action="/api/requirements/review" method="POST" onsubmit="return confirm('Save this review?');">
+              <input type="hidden" name="assignment_id" value="<%= task.assignment_id %>">
+              <input type="hidden" name="section_id" value="<%= sectionId %>">
+              <textarea name="reviewed_note" placeholder="Optional review note"></textarea>
+              <div>
+                <button class="btn small" type="submit" name="submission_status" value="verified">Verify</button>
+                <button class="btn-danger small" type="submit" name="submission_status" value="rejected">Reject</button>
+              </div>
+            </form>
+          <% } else if (needsPaymentReview(task)) { %>
+            <form action="/api/requirements/payment" method="POST" onsubmit="return confirm('Save this payment review?');">
+              <input type="hidden" name="assignment_id" value="<%= task.assignment_id %>">
+              <input type="hidden" name="section_id" value="<%= sectionId %>">
+              <textarea name="reviewed_note" placeholder="Optional transaction comment"><%= task.reviewed_note || '' %></textarea>
+              <div>
+                <button class="btn small" type="submit" name="status" value="paid">Verify Paid</button>
+                <button class="btn-danger small" type="submit" name="status" value="unpaid">Mark Unpaid</button>
+              </div>
+            </form>
+          <% } else { %>
+            <span class="muted">No action needed.</span>
+          <% } %>
+        </div>
+      </article>
+    <% }) %>
+
+    <% if (!tasks.length) { %>
+      <div class="empty-state">
+        <h2>No tasks found</h2>
+        <p class="muted">Adjust the filters or check another section.</p>
+      </div>
+    <% } %>
+  </div>
+</section>
+<%- include('../partials/app-footer') %>

@@ -1,0 +1,44 @@
+<%- include('../partials/representative-header', { title, active, sectionId }) %>
+<div class="page-top"><div class="page-title"><h1>Payment Management: <%= sectionName %></h1><p>Review uploaded transaction proof and mark payment or fine tasks paid.</p></div></div>
+<section class="panel">
+  <table class="data-table">
+    <thead><tr><th>Student</th><th>Task</th><th>Type</th><th>Amount</th><th>Due</th><th>Status</th><th>Proof</th><th>Review</th></tr></thead>
+    <tbody>
+      <% payments.forEach((payment) => { %>
+        <tr>
+          <td><strong><%= payment.full_name %></strong><br><span class="muted"><%= payment.student_id || '' %> &middot; <%= payment.role %></span></td>
+          <td><strong><%= payment.requirement_name %></strong><% if (payment.description) { %><br><span class="muted"><%= payment.description %></span><% } %></td>
+          <td><span class="badge <%= payment.requirement_type === 'fine' ? 'red' : 'yellow' %>"><%= payment.requirement_type %></span></td>
+          <td>PHP <%= Number(payment.amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %></td>
+          <td><%= payment.due_date ? new Date(payment.due_date).toLocaleDateString() : 'No due date' %></td>
+          <td>
+            <span class="badge <%= payment.status %>"><%= payment.status %></span>
+            <span class="badge <%= payment.submission_status %>"><%= payment.submission_status %></span>
+          </td>
+          <td>
+            <% if (payment.submission_path) { %>
+              <a class="btn-outline small" target="_blank" href="/<%= payment.submission_path %>">Preview / Download</a><br>
+              <span class="muted"><%= payment.submission_note || '' %></span>
+            <% } else { %>
+              <span class="muted">No proof uploaded</span>
+            <% } %>
+            <% if (payment.reviewed_note) { %><p class="muted">Review note: <%= payment.reviewed_note %></p><% } %>
+          </td>
+          <td>
+            <form class="action-stack" action="/api/requirements/payment" method="POST" onsubmit="return confirm('Save this payment review?');">
+              <input type="hidden" name="assignment_id" value="<%= payment.assignment_id %>">
+              <input type="hidden" name="section_id" value="<%= sectionId %>">
+              <textarea name="reviewed_note" placeholder="Optional transaction comment"><%= payment.reviewed_note || '' %></textarea>
+              <button class="btn small" type="submit" name="status" value="paid">Verify Paid</button>
+              <button class="btn-danger small" type="submit" name="status" value="unpaid">Reject / Mark Unpaid</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!payments.length) { %>
+        <tr><td colspan="8" class="muted">No payment or fine tasks for this section.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/app-footer') %>

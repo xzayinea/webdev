@@ -1,0 +1,76 @@
+<%- include('../partials/executive-header', { title, active }) %>
+<% const dt = (value) => value ? new Date(value).toISOString().slice(0, 16) : ''; %>
+<div class="page-top"><div class="page-title"><h1>Events</h1><p>Publish upcoming events to the landing page.</p></div></div>
+
+<form class="panel pad" action="/executive/actions" method="POST">
+  <h2 class="panel-title compact-title">Add Event</h2>
+  <input type="hidden" name="action" value="add_event">
+  <input type="hidden" name="display_event" value="1">
+  <div class="form-grid">
+    <div><label>Title</label><input type="text" name="title" required></div>
+    <div>
+      <label>Scope</label>
+      <select name="scope" required>
+        <option value="public">Public and students</option>
+        <option value="students">Students only</option>
+      </select>
+    </div>
+    <div><label>Starts At</label><input type="datetime-local" name="starts_at" required></div>
+    <div><label>Ends At</label><input type="datetime-local" name="ends_at"></div>
+    <div><label>Location</label><input type="text" name="location"></div>
+    <div><label>Registration URL</label><input type="url" name="registration_url" placeholder="Optional"></div>
+  </div>
+  <label>Description</label>
+  <textarea name="description"></textarea>
+  <label class="checkline"><input type="checkbox" name="registration_required" value="1"> Registration required</label>
+  <button class="btn" type="submit">Publish Event</button>
+</form>
+
+<section class="panel">
+  <h2 class="panel-title">Landing Page Events</h2>
+  <table class="data-table">
+    <thead><tr><th>Event</th><th>Date</th><th>Scope</th><th>Registration</th><th>Visible</th><th>Actions</th></tr></thead>
+    <tbody>
+      <% events.forEach((event) => { %>
+        <tr>
+          <td><strong><%= event.title %></strong><% if (event.location) { %><br><span class="muted"><%= event.location %></span><% } %><% if (event.description) { %><br><span class="muted"><%= event.description %></span><% } %></td>
+          <td><%= new Date(event.starts_at).toLocaleString() %><% if (event.ends_at) { %><br><span class="muted">Until <%= new Date(event.ends_at).toLocaleString() %></span><% } %></td>
+          <td><span class="badge <%= event.scope === 'public' ? 'green' : 'yellow' %>"><%= event.scope === 'public' ? 'Public' : 'Students' %></span></td>
+          <td><%= event.registration_required ? 'Required' : 'Optional' %><% if (event.registration_url) { %><br><a class="muted" href="<%= event.registration_url %>" target="_blank" rel="noreferrer">Registration link</a><% } %></td>
+          <td><span class="badge <%= event.display_event ? 'green' : 'red' %>"><%= event.display_event ? 'Shown' : 'Hidden' %></span></td>
+          <td class="action-stack">
+            <details>
+              <summary class="btn-outline small">Edit</summary>
+              <form class="inline-edit" action="/executive/actions" method="POST">
+                <input type="hidden" name="action" value="update_event">
+                <input type="hidden" name="event_id" value="<%= event.id %>">
+                <input type="text" name="title" value="<%= event.title %>" required>
+                <select name="scope" required>
+                  <option value="public" <%= event.scope === 'public' ? 'selected' : '' %>>Public and students</option>
+                  <option value="students" <%= event.scope === 'students' ? 'selected' : '' %>>Students only</option>
+                </select>
+                <input type="datetime-local" name="starts_at" value="<%= dt(event.starts_at) %>" required>
+                <input type="datetime-local" name="ends_at" value="<%= dt(event.ends_at) %>">
+                <input type="text" name="location" value="<%= event.location || '' %>" placeholder="Location">
+                <input type="url" name="registration_url" value="<%= event.registration_url || '' %>" placeholder="Registration URL">
+                <textarea name="description"><%= event.description || '' %></textarea>
+                <label class="checkline"><input type="checkbox" name="registration_required" value="1" <%= event.registration_required ? 'checked' : '' %>> Registration required</label>
+                <label class="checkline"><input type="checkbox" name="display_event" value="1" <%= event.display_event ? 'checked' : '' %>> Show on landing page</label>
+                <button class="btn small" type="submit">Save</button>
+              </form>
+            </details>
+            <form action="/executive/actions" method="POST" onsubmit="return confirm('Delete this event?');">
+              <input type="hidden" name="action" value="delete_event">
+              <input type="hidden" name="event_id" value="<%= event.id %>">
+              <button class="btn-danger small" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!events.length) { %>
+        <tr><td colspan="6" class="muted">No events yet.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/app-footer') %>

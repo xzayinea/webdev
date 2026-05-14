@@ -1,0 +1,93 @@
+<%
+const role = user.role;
+const header = ['admin', 'executive'].includes(role)
+  ? '../partials/executive-header'
+  : ['rep', 'representative'].includes(role)
+    ? '../partials/representative-header'
+    : '../partials/student-header';
+const initials = account.full_name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+const avatarPath = account.profile_avatar_path ? `/${account.profile_avatar_path}` : null;
+const bannerPath = account.profile_banner_path ? `/${account.profile_banner_path}` : null;
+const viewingOwn = typeof isSelf === 'boolean' ? isSelf : true;
+%>
+<%- include(header, { title, active, sectionId: user.sectionId }) %>
+<div class="page-top profile-page-top">
+  <div class="page-title">
+    <p class="eyebrow">Account style</p>
+    <h1><%= viewingOwn ? 'My Profile' : `${account.full_name}'s Profile` %></h1>
+    <p><%= viewingOwn ? 'Shape how your account appears across SyncClear with a banner, avatar, status, and bio.' : 'Preview this account profile as it appears across SyncClear.' %></p>
+  </div>
+</div>
+
+<section class="profile-layout">
+  <article class="profile-preview" style="--profile-accent: <%= account.profile_accent_color %>;">
+    <div
+      class="profile-banner"
+      <% if (bannerPath) { %>style="background-image: linear-gradient(120deg, rgba(6,12,22,0.2), rgba(6,12,22,0.72)), url('<%= bannerPath %>');"<% } %>
+    ></div>
+    <div class="profile-card-body">
+      <div class="profile-avatar">
+        <% if (avatarPath) { %>
+          <img src="<%= avatarPath %>" alt="">
+        <% } else { %>
+          <span><%= initials || 'SC' %></span>
+        <% } %>
+      </div>
+      <div class="profile-identity">
+        <span class="profile-status"><%= account.profile_status || 'Ready to clear tasks' %></span>
+        <h2><%= account.full_name %></h2>
+        <p><%= account.email %></p>
+      </div>
+      <div class="profile-meta-grid">
+        <div><span>Role</span><strong><%= account.role %></strong></div>
+        <div><span>Section</span><strong><%= account.section_name %></strong></div>
+        <div><span>Student ID</span><strong><%= account.student_id || 'Not set' %></strong></div>
+      </div>
+      <div class="profile-about">
+        <span>About</span>
+        <p><%= account.profile_bio || 'Add a short bio so classmates and officers know the person behind the clearance checklist.' %></p>
+      </div>
+    </div>
+  </article>
+
+  <% if (viewingOwn) { %>
+    <article class="panel pad profile-editor">
+      <h2 class="panel-title compact-title">Customize Profile</h2>
+      <form class="profile-form" action="/account/profile" method="POST" enctype="multipart/form-data">
+        <div>
+          <label>Name</label>
+          <input type="text" name="full_name" value="<%= account.full_name %>" maxlength="100" required>
+        </div>
+        <div>
+          <label>Status</label>
+          <input type="text" name="profile_status" value="<%= account.profile_status || '' %>" maxlength="80" placeholder="Available, reviewing payments, finals mode...">
+        </div>
+        <div>
+          <label>Bio</label>
+          <textarea name="profile_bio" maxlength="280" placeholder="A short intro, org role, interests, or reminder."><%= account.profile_bio || '' %></textarea>
+        </div>
+        <div class="profile-split-fields">
+          <div>
+            <label>Accent</label>
+            <input class="color-input" type="color" name="profile_accent_color" value="<%= account.profile_accent_color || '#2f80ed' %>">
+          </div>
+          <div>
+            <label>Avatar</label>
+            <input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp,.gif">
+          </div>
+        </div>
+        <div>
+          <label>Banner</label>
+          <input type="file" name="banner" accept=".jpg,.jpeg,.png,.webp,.gif">
+        </div>
+        <button class="btn" type="submit">Save Profile</button>
+      </form>
+    </article>
+  <% } else { %>
+    <article class="panel pad profile-editor">
+      <h2 class="panel-title compact-title">Read-only</h2>
+      <p class="muted" style="margin: 0;">This profile is visible to representatives (same section) and executives for review purposes. Only the owner can edit it.</p>
+    </article>
+  <% } %>
+</section>
+<%- include('../partials/app-footer') %>

@@ -1,0 +1,29 @@
+<%- include('../partials/representative-header', { title, active, sectionId }) %>
+<% const pct = (a, b) => Number(b) > 0 ? Math.round((Number(a) / Number(b)) * 100) : 0; %>
+<div class="page-top"><div class="page-title"><h1>Section Students</h1><p>Review live requirement completion, payment status, and clearance progress.</p></div></div>
+<div class="summary-grid">
+  <div class="summary-card"><h4>Members</h4><strong><%= summary.member_count || 0 %></strong></div>
+  <div class="summary-card"><h4>Requirement Completion</h4><strong><%= pct(summary.requirement_verified, summary.requirement_total) %>%</strong></div>
+  <div class="summary-card"><h4>Pending Reviews</h4><strong><%= summary.pending_reviews || 0 %></strong></div>
+  <div class="summary-card"><h4>Outstanding Balance</h4><strong>PHP <%= Number(summary.unpaid_balance || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %></strong></div>
+</div>
+<section class="panel">
+  <table class="data-table">
+    <thead><tr><th>Student</th><th>Role</th><th>Requirements</th><th>Pending Review</th><th>Payments</th><th>Balance</th><th>Clearance</th><th>Action</th></tr></thead>
+    <tbody>
+      <% students.forEach((student) => { const rp = pct(student.requirement_verified, student.requirement_total); %>
+        <tr>
+          <td><strong><%= student.full_name %></strong><br><span class="muted"><%= student.student_id || '' %></span></td>
+          <td><span class="badge yellow"><%= student.role %></span></td>
+          <td><%= student.requirement_verified %> / <%= student.requirement_total %><div class="progress"><span style="width:<%= rp %>%"></span></div></td>
+          <td><span class="badge <%= Number(student.requirement_submitted) > 0 ? 'yellow' : 'green' %>"><%= student.requirement_submitted %></span></td>
+          <td><%= student.money_paid %> / <%= student.money_total %></td>
+          <td>PHP <%= Number(student.unpaid_balance || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %></td>
+          <td><span class="badge <%= student.clearance_status %>"><%= student.clearance_status %></span></td>
+          <td><a class="btn-outline small" href="/representative/tasks?id=<%= sectionId %>">Tasks</a></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/app-footer') %>

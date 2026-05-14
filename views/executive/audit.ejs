@@ -1,0 +1,62 @@
+<%- include('../partials/executive-header', { title, active }) %>
+<%
+const labelAction = (value) => String(value || '').replace(/_/g, ' ');
+const formatDate = (value) => value ? new Date(value).toLocaleString() : '';
+%>
+<div class="page-top audit-hero">
+  <div class="page-title">
+    <p class="eyebrow">Accountability</p>
+    <h1>Audit Trail</h1>
+    <p>Review verification, payment, and system actions recorded across sections.</p>
+  </div>
+</div>
+
+<section class="panel">
+  <form class="filter-bar audit-filter" method="GET">
+    <input type="text" name="q" placeholder="Search actor, student, task, or note" value="<%= filters.search %>">
+    <select name="action">
+      <option value="">All actions</option>
+      <% actions.forEach((item) => { %>
+        <option value="<%= item.action %>" <%= filters.action === item.action ? 'selected' : '' %>><%= labelAction(item.action) %></option>
+      <% }) %>
+    </select>
+    <button class="btn small" type="submit">Filter</button>
+    <a class="btn-outline small" href="/executive/audit">Reset</a>
+  </form>
+
+  <div class="audit-list">
+    <% logs.forEach((log) => { %>
+      <article class="audit-item">
+        <div class="audit-icon"><%= String(log.action || '?').slice(0, 1).toUpperCase() %></div>
+        <div class="audit-content">
+          <div class="audit-line">
+            <strong><%= log.actor_name %></strong>
+            <span><%= labelAction(log.action) %></span>
+            <strong><%= log.target_name %></strong>
+          </div>
+          <div class="audit-meta">
+            <span><%= log.requirement_name %></span>
+            <span><%= log.section_name %></span>
+            <time><%= formatDate(log.created_at) %></time>
+          </div>
+          <% if (log.old_value || log.new_value) { %>
+            <div class="audit-change">
+              <span><%= log.old_value || 'none' %></span>
+              <b>to</b>
+              <span><%= log.new_value || 'none' %></span>
+            </div>
+          <% } %>
+          <% if (log.note) { %><p><%= log.note %></p><% } %>
+        </div>
+      </article>
+    <% }) %>
+    <% if (!logs.length) { %>
+      <div class="empty-state">
+        <h2>No audit records found</h2>
+        <p class="muted">Actions will appear here after representatives review tasks or payments.</p>
+      </div>
+    <% } %>
+  </div>
+  <%- include('../partials/pagination', { pagination, pageUrl }) %>
+</section>
+<%- include('../partials/app-footer') %>

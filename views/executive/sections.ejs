@@ -1,0 +1,99 @@
+<%- include('../partials/executive-header', { title, active }) %>
+<%
+const progress = (s) => {
+  const total = Number(s.requirement_total) + Number(s.money_total);
+  return total ? Math.round(((Number(s.requirement_verified) + Number(s.money_paid)) / total) * 100) : 0;
+};
+const totals = sections.reduce((summary, section) => {
+  summary.members += Number(section.member_count || 0);
+  summary.balance += Number(section.unpaid_balance || 0);
+  summary.done += Number(section.requirement_verified || 0) + Number(section.money_paid || 0);
+  summary.tasks += Number(section.requirement_total || 0) + Number(section.money_total || 0);
+  return summary;
+}, { members: 0, balance: 0, done: 0, tasks: 0 });
+const overallProgress = totals.tasks ? Math.round((totals.done / totals.tasks) * 100) : 0;
+%>
+<div class="page-top sections-hero">
+  <div class="page-title">
+    <p class="eyebrow">Class management</p>
+    <h1>Sections</h1>
+    <p>Track each class by representative, task progress, member count, and outstanding balance.</p>
+  </div>
+  <form class="section-create" action="/executive/actions" method="POST">
+    <input type="hidden" name="action" value="add_section">
+    <div>
+      <label>Section Name</label>
+      <input type="text" name="section_name" placeholder="BSIT 3-C" required>
+    </div>
+    <div>
+      <label>Year</label>
+      <input type="number" name="year_level" min="1" max="5" placeholder="3" required>
+    </div>
+    <button class="btn" type="submit">Add Section</button>
+  </form>
+</div>
+
+<section class="section-overview-grid">
+  <article><span>Total Sections</span><strong><%= sections.length %></strong></article>
+  <article><span>Total Members</span><strong><%= totals.members %></strong></article>
+  <article><span>Open Balance</span><strong>PHP <%= totals.balance.toLocaleString(undefined, {minimumFractionDigits: 2}) %></strong></article>
+  <article><span>Overall Progress</span><strong><%= overallProgress %>%</strong><div class="progress wide"><span style="width:<%= overallProgress %>%"></span></div></article>
+</section>
+
+<section class="section-card-grid">
+  <% sections.forEach((section) => {
+    const p = progress(section);
+    const balance = Number(section.unpaid_balance || 0);
+    const closedTasks = Number(section.requirement_verified) + Number(section.money_paid);
+    const totalTasks = Number(section.requirement_total) + Number(section.money_total);
+  %>
+    <article class="section-card">
+      <div class="section-card-head">
+        <div>
+          <span class="section-year">Year <%= section.year_level %></span>
+          <h2><%= section.section_name %></h2>
+        </div>
+        <span class="badge <%= p === 100 ? 'cleared' : p > 0 ? 'pending' : 'unpaid' %>"><%= p %>%</span>
+      </div>
+
+      <div class="section-rep">
+        <span>Representative</span>
+        <strong><%= section.representative %></strong>
+      </div>
+
+      <div class="section-progress-row">
+        <div>
+          <strong><%= p %>% complete</strong>
+          <span><%= closedTasks %> of <%= totalTasks %> tasks closed</span>
+        </div>
+        <div class="progress wide"><span style="width:<%= p %>%"></span></div>
+      </div>
+
+      <div class="section-stat-grid">
+        <div><span>Members</span><strong><%= section.member_count %></strong></div>
+        <div><span>Tasks</span><strong><%= closedTasks %>/<%= totalTasks %></strong></div>
+        <div><span>Balance</span><strong class="<%= balance > 0 ? 'balance-warn' : '' %>">PHP <%= balance.toLocaleString(undefined, {minimumFractionDigits: 2}) %></strong></div>
+      </div>
+
+      <div class="section-card-actions">
+        <a class="btn small" href="/representative/section-detail?id=<%= section.id %>">Open Section</a>
+        <details class="section-edit">
+          <summary class="btn-outline small">Edit</summary>
+          <form action="/executive/actions" method="POST">
+            <input type="hidden" name="action" value="update_section">
+            <input type="hidden" name="section_id" value="<%= section.id %>">
+            <input type="text" name="section_name" value="<%= section.section_name %>" required>
+            <input type="number" name="year_level" min="1" max="5" value="<%= section.year_level %>" required>
+            <button class="btn small" type="submit">Save</button>
+          </form>
+        </details>
+        <form action="/executive/actions" method="POST" onsubmit="return confirm('Delete this section? Its members will become unassigned.');">
+          <input type="hidden" name="action" value="delete_section">
+          <input type="hidden" name="section_id" value="<%= section.id %>">
+          <button class="btn-danger small" type="submit">Delete</button>
+        </form>
+      </div>
+    </article>
+  <% }) %>
+</section>
+<%- include('../partials/app-footer') %>

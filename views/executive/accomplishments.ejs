@@ -1,0 +1,86 @@
+<%- include('../partials/executive-header', { title, active }) %>
+<% const prog = (s) => { const total = Number(s.requirement_total) + Number(s.money_total); return total ? Math.round(((Number(s.requirement_verified) + Number(s.money_paid)) / total) * 100) : 0; }; %>
+<div class="page-top"><div class="page-title"><h1>Accomplishments</h1><p>Publish accomplishments to the landing page and review completion progress.</p></div></div>
+
+<form class="panel pad" action="/executive/actions" method="POST">
+  <h2 class="panel-title compact-title">Add Landing Accomplishment</h2>
+  <input type="hidden" name="action" value="add_accomplishment">
+  <div class="form-grid">
+    <div><label>Title</label><input type="text" name="title" required></div>
+    <div>
+      <label>Scope</label>
+      <select name="scope" required>
+        <option value="public">Public and students</option>
+        <option value="students">Students only</option>
+      </select>
+    </div>
+    <div><label>Metric Label</label><input type="text" name="metric_label" placeholder="Optional"></div>
+    <div><label>Metric Value</label><input type="text" name="metric_value" placeholder="Optional"></div>
+    <div><label>Display Order</label><input type="number" name="display_order" value="0"></div>
+  </div>
+  <label>Description</label>
+  <textarea name="body" required></textarea>
+  <label class="checkline"><input type="checkbox" name="display_accomplishment" value="1" checked> Show on landing page</label>
+  <button class="btn" type="submit">Publish Accomplishment</button>
+</form>
+
+<section class="panel">
+  <h2 class="panel-title">Landing Page Accomplishments</h2>
+  <table class="data-table">
+    <thead><tr><th>Accomplishment</th><th>Scope</th><th>Metric</th><th>Visible</th><th>Actions</th></tr></thead>
+    <tbody>
+      <% accomplishments.forEach((item) => { %>
+        <tr>
+          <td><strong><%= item.title %></strong><br><span class="muted"><%= item.description %></span></td>
+          <td><span class="badge <%= item.scope === 'public' ? 'green' : 'yellow' %>"><%= item.scope === 'public' ? 'Public' : 'Students' %></span></td>
+          <td><%= item.metric_value || 'No metric' %><% if (item.metric_label) { %><br><span class="muted"><%= item.metric_label %></span><% } %></td>
+          <td><span class="badge <%= item.display_highlight ? 'green' : 'red' %>"><%= item.display_highlight ? 'Shown' : 'Hidden' %></span></td>
+          <td class="action-stack">
+            <details>
+              <summary class="btn-outline small">Edit</summary>
+              <form class="inline-edit" action="/executive/actions" method="POST">
+                <input type="hidden" name="action" value="update_accomplishment">
+                <input type="hidden" name="accomplishment_id" value="<%= item.id %>">
+                <input type="text" name="title" value="<%= item.title %>" required>
+                <select name="scope" required>
+                  <option value="public" <%= item.scope === 'public' ? 'selected' : '' %>>Public and students</option>
+                  <option value="students" <%= item.scope === 'students' ? 'selected' : '' %>>Students only</option>
+                </select>
+                <input type="text" name="metric_label" value="<%= item.metric_label || '' %>" placeholder="Metric label">
+                <input type="text" name="metric_value" value="<%= item.metric_value || '' %>" placeholder="Metric value">
+                <input type="number" name="display_order" value="<%= item.display_order || 0 %>">
+                <textarea name="body" required><%= item.description %></textarea>
+                <label class="checkline"><input type="checkbox" name="display_accomplishment" value="1" <%= item.display_highlight ? 'checked' : '' %>> Show on landing page</label>
+                <button class="btn small" type="submit">Save</button>
+              </form>
+            </details>
+            <form action="/executive/actions" method="POST" onsubmit="return confirm('Delete this accomplishment?');">
+              <input type="hidden" name="action" value="delete_accomplishment">
+              <input type="hidden" name="accomplishment_id" value="<%= item.id %>">
+              <button class="btn-danger small" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!accomplishments.length) { %>
+        <tr><td colspan="5" class="muted">No landing accomplishments yet.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2 class="panel-title">Section Completion</h2>
+  <table class="data-table">
+    <thead><tr><th>Section</th><th>Members</th><th>Requirements</th><th>Payments</th><th>Progress</th><th>Status</th></tr></thead>
+    <tbody><% sections.forEach((section) => { const p = prog(section); %><tr><td><strong><%= section.section_name %></strong></td><td><%= section.member_count %></td><td><%= section.requirement_verified %> / <%= section.requirement_total %></td><td><%= section.money_paid %> / <%= section.money_total %></td><td><%= p %>%<div class="progress"><span style="width:<%= p %>%"></span></div></td><td><span class="badge <%= p === 100 ? 'green' : 'yellow' %>"><%= p === 100 ? 'Complete' : 'In Progress' %></span></td></tr><% }) %></tbody>
+  </table>
+</section>
+<section class="panel">
+  <h2 class="panel-title">Completed Members</h2>
+  <table class="data-table">
+    <thead><tr><th>Student</th><th>Section</th><th>Status</th></tr></thead>
+    <tbody><% completedMembers.forEach((student) => { %><tr><td><strong><%= student.full_name %></strong><br><span class="muted"><%= student.student_id || '' %></span></td><td><%= student.section_name %></td><td><span class="badge green">Complete</span></td></tr><% }) %></tbody>
+  </table>
+</section>
+<%- include('../partials/app-footer') %>

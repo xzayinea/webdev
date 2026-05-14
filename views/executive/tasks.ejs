@@ -1,0 +1,160 @@
+<%- include('../partials/executive-header', { title, active }) %>
+<%
+const typeLabel = (type) => type === 'payment' ? 'Payment' : type === 'fine' ? 'Fine' : 'Requirement';
+const statusText = (task) => {
+  if (task.requirement_type === 'requirement') {
+    if (Number(task.assigned_count) > 0 && Number(task.verified_count) === Number(task.assigned_count)) return 'Complete';
+    if (Number(task.submitted_count) > 0) return 'Submitted';
+    return 'Pending';
+  }
+  if (Number(task.assigned_count) > 0 && Number(task.paid_count) === Number(task.assigned_count)) return 'Paid';
+  return 'Unpaid';
+};
+const statusClass = (task) => {
+  const text = statusText(task).toLowerCase();
+  return text === 'complete' || text === 'paid' ? 'paid' : text === 'submitted' ? 'submitted' : 'unpaid';
+};
+const dateValue = (value) => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+};
+%>
+<div class="page-top tasks-hero">
+  <div class="page-title">
+    <p class="eyebrow">Unified task center</p>
+    <h1>Tasks</h1>
+    <p>Create and track requirements, payments, and fines from one place.</p>
+  </div>
+</div>
+
+<form class="panel pad task-create-panel" action="/executive/actions" method="POST">
+  <h2 class="panel-title compact-title">Add Task</h2>
+  <input type="hidden" name="action" value="add_requirement">
+  <input type="hidden" name="return_to" value="tasks">
+  <div class="task-create-grid">
+    <div>
+      <label>Task Name</label>
+      <input type="text" name="requirement_name" placeholder="Profile update, org fee, lab fine..." required>
+    </div>
+    <div>
+      <label>Requirement Type</label>
+      <select name="requirement_type" required>
+        <option value="requirement">Requirement</option>
+        <option value="payment">Payment</option>
+        <option value="fine">Fine</option>
+      </select>
+    </div>
+    <div>
+      <label>Amount</label>
+      <input type="number" name="amount" min="0" step="0.01" value="0">
+    </div>
+    <div>
+      <label>Due Date</label>
+      <input type="date" name="due_date">
+    </div>
+    <button class="btn" type="submit">Deploy Task</button>
+  </div>
+  <label>Instructions</label>
+  <textarea name="description" placeholder="Add details students should see before submitting."></textarea>
+  <label>Assign To Sections</label>
+  <div class="checkbox-row">
+    <% sections.forEach((section) => { %><label><input type="checkbox" name="section_ids" value="<%= section.id %>"> <%= section.section_name %></label><% }) %>
+    <span class="muted">Leave all unchecked to assign to every section.</span>
+  </div>
+</form>
+
+<section class="panel">
+  <div class="task-list-head">
+    <h2 class="panel-title compact-title">Task Status</h2>
+    <form class="filter-bar task-filter-bar" method="GET">
+      <select name="type">
+        <option value="">All types</option>
+        <option value="requirement" <%= filters.type === 'requirement' ? 'selected' : '' %>>Requirement</option>
+        <option value="payment" <%= filters.type === 'payment' ? 'selected' : '' %>>Payment</option>
+        <option value="fine" <%= filters.type === 'fine' ? 'selected' : '' %>>Fine</option>
+      </select>
+      <select name="section_id">
+        <option value="">All sections</option>
+        <% sections.forEach((section) => { %>
+          <option value="<%= section.id %>" <%= Number(filters.sectionId) === Number(section.id) ? 'selected' : '' %>><%= section.section_name %></option>
+        <% }) %>
+      </select>
+      <select name="status">
+        <option value="">All statuses</option>
+        <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending / unpaid</option>
+        <option value="submitted" <%= filters.status === 'submitted' ? 'selected' : '' %>>Has submissions</option>
+        <option value="complete" <%= filters.status === 'complete' ? 'selected' : '' %>>Complete / paid</option>
+        <option value="unpaid" <%= filters.status === 'unpaid' ? 'selected' : '' %>>Unpaid money tasks</option>
+        <option value="paid" <%= filters.status === 'paid' ? 'selected' : '' %>>Paid money tasks</option>
+      </select>
+      <select name="due">
+        <option value="">Any due date</option>
+        <option value="overdue" <%= filters.due === 'overdue' ? 'selected' : '' %>>Overdue</option>
+        <option value="upcoming" <%= filters.due === 'upcoming' ? 'selected' : '' %>>Upcoming</option>
+        <option value="none" <%= filters.due === 'none' ? 'selected' : '' %>>No due date</option>
+      </select>
+      <button class="btn small" type="submit">Filter</button>
+      <a class="btn-outline small" href="/executive/tasks">Reset</a>
+    </form>
+  </div>
+
+  <div class="task-table-wrap">
+    <table class="data-table task-table">
+      <thead><tr><th>Task</th><th>Type</th><th>Due</th><th>Assigned</th><th>Status</th><th>Scope</th><th>Actions</th></tr></thead>
+      <tbody>
+        <% tasks.forEach((task) => { const scopedIds = String(task.scoped_section_ids || '').split(',').filter(Boolean); const isRequirement = task.requirement_type === 'requirement'; %>
+          <tr>
+            <td>
+              <strong><%= task.requirement_name %></strong>
+              <% if (task.description) { %><br><span class="muted"><%= task.description %></span><% } %>
+              <% if (!isRequirement) { %><br><span>PHP <%= Number(task.amount).toLocaleString(undefined, {minimumFractionDigits: 2}) %></span><% } %>
+            </td>
+            <td><span class="badge yellow"><%= typeLabel(task.requirement_type) %></span></td>
+            <td><%= task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date' %></td>
+            <td><%= task.assigned_count %></td>
+            <td>
+              <span class="badge <%= statusClass(task) %>"><%= statusText(task) %></span>
+              <div class="muted task-substatus"><%= isRequirement ? `${task.submitted_count} submitted · ${task.verified_count} verified` : `${task.paid_count} paid` %></div>
+            </td>
+            <td><%= task.scoped_sections || 'All sections' %></td>
+            <td class="action-stack">
+              <details>
+                <summary class="btn-outline small">Edit</summary>
+                <form class="inline-edit task-edit-form" action="/executive/actions" method="POST">
+                  <input type="hidden" name="action" value="update_requirement">
+                  <input type="hidden" name="requirement_id" value="<%= task.id %>">
+                  <input type="hidden" name="return_to" value="tasks">
+                  <input type="text" name="requirement_name" value="<%= task.requirement_name %>" required>
+                  <select name="requirement_type" required>
+                    <option value="requirement" <%= task.requirement_type === 'requirement' ? 'selected' : '' %>>Requirement</option>
+                    <option value="payment" <%= task.requirement_type === 'payment' ? 'selected' : '' %>>Payment</option>
+                    <option value="fine" <%= task.requirement_type === 'fine' ? 'selected' : '' %>>Fine</option>
+                  </select>
+                  <input type="number" name="amount" min="0" step="0.01" value="<%= task.amount %>">
+                  <input type="date" name="due_date" value="<%= dateValue(task.due_date) %>">
+                  <textarea name="description"><%= task.description || '' %></textarea>
+                  <div class="checkbox-row">
+                    <% sections.forEach((section) => { %><label><input type="checkbox" name="section_ids" value="<%= section.id %>" <%= scopedIds.includes(String(section.id)) ? 'checked' : '' %>> <%= section.section_name %></label><% }) %>
+                  </div>
+                  <button class="btn small" type="submit">Save</button>
+                </form>
+              </details>
+              <form action="/executive/actions" method="POST" onsubmit="return confirm('Delete this task and all related assignments?');">
+                <input type="hidden" name="action" value="delete_requirement">
+                <input type="hidden" name="requirement_id" value="<%= task.id %>">
+                <input type="hidden" name="return_to" value="tasks">
+                <button class="btn-danger small" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+        <% if (!tasks.length) { %>
+          <tr><td colspan="7" class="muted">No tasks match the current filters.</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+  <%- include('../partials/pagination', { pagination, pageUrl }) %>
+</section>
+<%- include('../partials/app-footer') %>

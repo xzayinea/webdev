@@ -1,0 +1,7 @@
+<%- include('../partials/student-header', { title, active }) %>
+<div class="page-top"><div class="page-title"><h1>Settings</h1><p>Profile settings will live here after the account module is expanded.</p></div></div>
+<section class="panel pad">
+  <p><strong><%= user.fullName %></strong></p>
+  <p class="muted">Role: <%= user.role %></p>
+</section>
+<%- include('../partials/app-footer') %>

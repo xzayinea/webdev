@@ -1,0 +1,11 @@
+<% if (pagination && pagination.totalPages > 1) { %>
+  <nav class="pagination" aria-label="Pagination">
+    <% if (pagination.hasPrevious) { %>
+      <a class="btn-outline small" href="<%= pageUrl(pagination.page - 1) %>">Previous</a>
+    <% } %>
+    <span>Page <%= pagination.page %> of <%= pagination.totalPages %> · <%= pagination.total %> records</span>
+    <% if (pagination.hasNext) { %>
+      <a class="btn-outline small" href="<%= pageUrl(pagination.page + 1) %>">Next</a>
+    <% } %>
+  </nav>
+<% } %>

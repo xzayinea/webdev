@@ -1,0 +1,539 @@
+<%- include('../partials/executive-header', { title, active }) %>
+<%
+const pct = (a, b) => Number(b) > 0 ? Math.round((Number(a) / Number(b)) * 100) : 0;
+const sectionProgress = (section) => {
+  const closed = Number(section.requirement_verified || 0) + Number(section.money_paid || 0);
+  const total = Number(section.requirement_total || 0) + Number(section.money_total || 0);
+  return total ? Math.round((closed / total) * 100) : 0;
+};
+%>
+<div class="page-top dashboard-hero">
+  <div class="page-title">
+    <p class="eyebrow">Command center</p>
+    <h1>Executive Board</h1>
+    <p>Live compliance, collection, and section review status</p>
+  </div>
+  <div class="dashboard-actions">
+    <a class="btn" href="/executive/tasks">Add Task</a>
+    <a class="btn-outline" href="/executive/sections">Manage Sections</a>
+  </div>
+</div>
+
+<div class="metric-grid">
+  <div class="metric-card"><div class="metric-label">Collected Funds</div><div class="metric-value">PHP <%= Number(moneySummary.collected || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %></div></div>
+  <div class="metric-card"><div class="metric-label">Outstanding Balance</div><div class="metric-value">PHP <%= Number(moneySummary.outstanding || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %></div></div>
+  <div class="metric-card"><div class="metric-label">Pending Reviews</div><div class="metric-value"><%= topSummary.pending_reviews %></div></div>
+  <div class="metric-card"><div class="metric-label">Sections / Members</div><div class="metric-value"><%= topSummary.section_count %> / <%= topSummary.member_count %></div></div>
+</div>
+
+<form class="panel pad dashboard-quick-add" action="/executive/actions" method="POST">
+  <input type="hidden" name="action" value="add_requirement">
+  <input type="hidden" name="requirement_type" value="requirement">
+  <input type="hidden" name="return_to" value="dashboard">
+  <input type="hidden" name="amount" value="0">
+  <div class="quick-add-copy">
+    <span>Quick Deploy</span>
+    <strong>Send a requirement to all active sections.</strong>
+  </div>
+  <div><label>Requirement</label><input type="text" name="requirement_name" placeholder="Student profile update" required></div>
+  <div><label>Due Date</label><input type="date" name="due_date"></div>
+  <button class="btn" type="submit">Deploy</button>
+</form>
+
+<form class="highlights-section" id="highlightsForm" action="/executive/dashboard-highlights" method="POST" enctype="multipart/form-data">
+  <div class="highlights-head">
+    <div>
+      <p class="eyebrow">Featured Events & Announcements</p>
+      <h2>Recent Organization Activities</h2>
+    </div>
+  </div>
+  <style>
+    .highlight-fields-hidden { display: none; }
+    .highlight-summary-title { font-weight: 700; margin: 4px 0 2px; }
+    .highlight-summary-meta { font-size: 0.85rem; color: #666; }
+    .highlight-card .dashboard-section-top { position: relative; }
+    .highlight-card .upload-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+    .highlight-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px; }
+    .highlight-modal { width: min(720px, 96vw); background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 14px 40px rgba(0,0,0,0.35); }
+    .highlight-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+    .highlight-modal-body { padding: 16px; display: grid; gap: 12px; }
+    .highlight-modal-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 720px) { .highlight-modal-grid { grid-template-columns: 1fr 1fr; } }
+    .highlight-modal-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 14px 16px; border-top: 1px solid rgba(0,0,0,0.08); }
+    .highlight-modal label { display: block; font-size: 0.85rem; color: #444; margin-bottom: 6px; }
+    .highlight-modal input[type="text"], .highlight-modal input[type="date"], .highlight-modal textarea { width: 100%; padding: 10px 12px; border: 1px solid rgba(0,0,0,0.18); border-radius: 10px; }
+    .highlight-modal textarea { min-height: 120px; resize: vertical; }
+    .highlight-modal-open { overflow: hidden; }
+  </style>
+    <div class="dashboard-section-grid">
+      <% 
+        // Always show 3 slots, mapping them by card_position
+        for (let i = 1; i <= 3; i++) { 
+          const highlight = (highlights && highlights.find(h => Number(h.card_position) === i)) || {};
+      %>
+        <article
+          class="dashboard-section-card highlight-card"
+          id="highlight-<%= highlight.id || 'new-' + i %>"
+          draggable="true"
+          data-slot="<%= i %>"
+          data-image="<%= highlight.image_path || '' %>"
+          data-highlight-index="<%= i %>"
+        >
+          <div class="dashboard-section-top" <% if (highlight.image_path) { %>style="background-image: url('<%= highlight.image_path %>'); background-size: cover; background-position: center; position: relative;"<% } %>>
+            <div style="<% if (highlight.image_path) { %>opacity: 0.7; background: rgba(0,0,0,0.3);<% } %> width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+              <label for="image-upload-<%= i %>" class="upload-label" style="<% if (highlight.image_path) { %>color: white; cursor: pointer;<% } else { %>cursor: pointer;<% } %>">
+                <% if (!highlight.image_path) { %>Drag or click to upload<% } else { %>Click to change image<% } %>
+              </label>
+              <input type="file" accept="image/*" name="highlights[<%= i %>][image]" onchange="handleImageUpload(event, <%= i - 1 %>)" style="position:absolute; inset:0; opacity:0; cursor:pointer;" id="image-upload-<%= i %>">
+            </div>
+          </div>
+          <div class="dashboard-section-progress">
+            <input type="hidden" name="highlights[<%= i %>][id]" value="<%= highlight.id || '' %>">
+            <input type="hidden" name="highlights[<%= i %>][card_position]" value="<%= i %>">
+            <input type="hidden" name="highlights[<%= i %>][display_highlight]" value="1">
+            <input type="hidden" class="highlight-image-path" name="highlights[<%= i %>][image_path]" value="<%= highlight.image_path || '' %>">
+            <div class="highlight-summary-title"><%= (highlight.title && String(highlight.title).trim()) ? highlight.title : ('Highlight ' + i) %></div>
+            <div class="highlight-summary-meta"><%= (highlight.event_date ? new Date(highlight.event_date).toISOString().split('T')[0] : 'No date yet') %> · Click card to edit</div>
+            <% 
+              let dateValue = '';
+              if (highlight.event_date) {
+                const d = new Date(highlight.event_date);
+                dateValue = d.toISOString().split('T')[0];
+              }
+            %>
+            <div class="highlight-fields-hidden">
+              <input type="text" class="highlight-title" name="highlights[<%= i %>][title]" value="<%= highlight.title || '' %>">
+              <input type="date" class="highlight-date" name="highlights[<%= i %>][event_date]" value="<%= dateValue %>">
+              <textarea class="highlight-description" name="highlights[<%= i %>][description]"><%= highlight.description || '' %></textarea>
+            </div>
+          </div>
+        </article>
+      <% } %>
+    </div>
+    <div style="margin-top: 20px;">
+      <button class="btn" type="submit">Save Highlights</button>
+    </div>
+<% /* Removed Manage All Highlights and alternate empty state */ %>
+</form>
+
+<div class="highlight-modal-backdrop" id="highlightModalBackdrop" aria-hidden="true">
+  <div class="highlight-modal" role="dialog" aria-modal="true" aria-labelledby="highlightModalTitle">
+    <div class="highlight-modal-head">
+      <div>
+        <div class="eyebrow" style="margin:0;">Highlight editor</div>
+        <div id="highlightModalTitle" style="font-weight:800;">Edit highlight</div>
+      </div>
+      <button type="button" class="btn-outline small" id="highlightModalClose">Close</button>
+    </div>
+    <div class="highlight-modal-body">
+      <div class="highlight-modal-grid">
+        <div>
+          <label for="highlightModalTitleInput">Title</label>
+          <input type="text" id="highlightModalTitleInput" placeholder="Title (required to save)">
+        </div>
+        <div>
+          <label for="highlightModalDateInput">Event date</label>
+          <input type="date" id="highlightModalDateInput">
+        </div>
+      </div>
+      <div>
+        <label for="highlightModalDescInput">Context / Description</label>
+        <textarea id="highlightModalDescInput" placeholder="Write a short context..."></textarea>
+      </div>
+      <div class="highlight-summary-meta" id="highlightModalImageHint" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <span>To change the image, click the card image area or paste from clipboard.</span>
+        <button type="button" class="btn-outline small" id="highlightModalPasteImageBtn">Paste image</button>
+        <span id="highlightModalPasteImageStatus" style="display:none;"></span>
+      </div>
+    </div>
+    <div class="highlight-modal-actions">
+      <button type="button" class="btn-outline" id="highlightModalCancel">Cancel</button>
+      <button type="button" class="btn" id="highlightModalApply">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setCardBackgroundFromUrl(card, url) {
+    const imageDiv = card.querySelector('.dashboard-section-top');
+    if (!imageDiv) return;
+    if (!url) {
+      imageDiv.style.backgroundImage = '';
+      return;
+    }
+    imageDiv.style.backgroundImage = `url('${url}')`;
+    imageDiv.style.backgroundSize = 'cover';
+    imageDiv.style.backgroundPosition = 'center';
+  }
+
+  function setHiddenImagePath(card, imagePath) {
+    const hidden = card.querySelector('.highlight-image-path');
+    if (hidden) hidden.value = imagePath || '';
+  }
+
+  function previewFileInCard(card, file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setCardBackgroundFromUrl(card, e.target.result);
+      card.dataset.image = e.target.result;
+      // A new file is selected; the final server image_path will come from the upload.
+      setHiddenImagePath(card, '');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function setCardImageFile(card, file) {
+    if (!card || !file) return false;
+    const fileInput = card.querySelector('input[type="file"][accept^="image/"]');
+    if (fileInput) {
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+      } catch (error) {
+        // If blocked, preview still updates; user may need to re-select image manually.
+      }
+    }
+    previewFileInCard(card, file);
+    return true;
+  }
+
+  function inferClipboardFilename(mimeType) {
+    const safeType = String(mimeType || '').toLowerCase();
+    if (safeType.includes('png')) return 'clipboard.png';
+    if (safeType.includes('jpeg') || safeType.includes('jpg')) return 'clipboard.jpg';
+    if (safeType.includes('webp')) return 'clipboard.webp';
+    if (safeType.includes('gif')) return 'clipboard.gif';
+    return 'clipboard-image';
+  }
+
+  async function readImageFileFromClipboard() {
+    if (!navigator.clipboard) throw new Error('Clipboard is not available in this browser.');
+    if (navigator.clipboard.read) {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const types = Array.from(item.types || []);
+        const imageType = types.find((t) => String(t).startsWith('image/'));
+        if (!imageType) continue;
+        const blob = await item.getType(imageType);
+        const filename = inferClipboardFilename(imageType);
+        return new File([blob], filename, { type: imageType });
+      }
+      throw new Error('Clipboard does not contain an image.');
+    }
+
+    throw new Error('Clipboard read is not supported here. Try pasting (Ctrl+V) while the modal is open.');
+  }
+
+  function handleImageUpload(event, index) {
+    const file = event.target.files?.[0];
+    const card = document.querySelectorAll('.highlight-card')[index];
+    if (!card || !file) return;
+    previewFileInCard(card, file);
+  }
+
+  function swapInputValues(selector, cardA, cardB) {
+    const a = cardA.querySelector(selector);
+    const b = cardB.querySelector(selector);
+    if (!a || !b) return;
+    const tmp = a.value;
+    a.value = b.value;
+    b.value = tmp;
+  }
+
+  function swapCardContent(cardA, cardB) {
+    // Move the content (id/title/date/description) between slots without changing the slot number.
+    swapInputValues('input[name$=\"[id]\"]', cardA, cardB);
+    swapInputValues('input[name$=\"[title]\"]', cardA, cardB);
+    swapInputValues('input[name$=\"[event_date]\"]', cardA, cardB);
+    swapInputValues('textarea[name$=\"[description]\"]', cardA, cardB);
+
+    // Swap image previews (existing image_path or newly dropped preview)
+    const imgA = cardA.dataset.image || '';
+    const imgB = cardB.dataset.image || '';
+    cardA.dataset.image = imgB;
+    cardB.dataset.image = imgA;
+    setCardBackgroundFromUrl(cardA, imgB);
+    setCardBackgroundFromUrl(cardB, imgA);
+
+    // Swap persisted image paths (server paths only; not data URLs).
+    swapInputValues('input.highlight-image-path', cardA, cardB);
+
+    // Refresh summary text so what you see matches what gets submitted.
+    const refreshSummary = (card) => {
+      const slot = card.dataset.highlightIndex || card.dataset.slot || '';
+      const titleVal = (card.querySelector('input[name$=\"[title]\"]')?.value || '').trim();
+      const dateVal = (card.querySelector('input[name$=\"[event_date]\"]')?.value || '').trim();
+      const summaryTitle = card.querySelector('.highlight-summary-title');
+      const summaryMeta = card.querySelector('.highlight-summary-meta');
+      if (summaryTitle) summaryTitle.textContent = titleVal ? titleVal : `Highlight ${slot}`;
+      if (summaryMeta) summaryMeta.textContent = `${dateVal || 'No date yet'} · Click card to edit`;
+    };
+    refreshSummary(cardA);
+    refreshSummary(cardB);
+
+    // Best-effort swap of selected files (supported in modern browsers).
+    try {
+      const inputA = cardA.querySelector('input[type=\"file\"]');
+      const inputB = cardB.querySelector('input[type=\"file\"]');
+      if (inputA && inputB) {
+        const fileA = inputA.files?.[0] || null;
+        const fileB = inputB.files?.[0] || null;
+        const dtA = new DataTransfer();
+        const dtB = new DataTransfer();
+        if (fileB) dtA.items.add(fileB);
+        if (fileA) dtB.items.add(fileA);
+        inputA.files = dtA.files;
+        inputB.files = dtB.files;
+      }
+    } catch (error) {
+      // If blocked, content swap still works; user may need to re-select images manually.
+    }
+  }
+
+  (function initHighlightsRedo() {
+    const cards = Array.from(document.querySelectorAll('.highlight-card'));
+    let draggedCard = null;
+    let suppressNextClick = false;
+    let modalCard = null;
+    const backdrop = document.getElementById('highlightModalBackdrop');
+    const closeBtn = document.getElementById('highlightModalClose');
+    const cancelBtn = document.getElementById('highlightModalCancel');
+    const applyBtn = document.getElementById('highlightModalApply');
+    const modalTitle = document.getElementById('highlightModalTitle');
+    const titleInput = document.getElementById('highlightModalTitleInput');
+    const dateInput = document.getElementById('highlightModalDateInput');
+    const descInput = document.getElementById('highlightModalDescInput');
+    const pasteImageBtn = document.getElementById('highlightModalPasteImageBtn');
+    const pasteImageStatus = document.getElementById('highlightModalPasteImageStatus');
+
+    const setPasteStatus = (message, isError = false) => {
+      if (!pasteImageStatus) return;
+      const text = String(message || '').trim();
+      if (!text) {
+        pasteImageStatus.style.display = 'none';
+        pasteImageStatus.textContent = '';
+        pasteImageStatus.style.color = '';
+        return;
+      }
+      pasteImageStatus.style.display = 'inline';
+      pasteImageStatus.textContent = text;
+      pasteImageStatus.style.color = isError ? '#b00020' : '#2e7d32';
+      window.clearTimeout(setPasteStatus._timer);
+      setPasteStatus._timer = window.setTimeout(() => setPasteStatus(''), 2500);
+    };
+
+    function openModal(card) {
+      if (!card || !backdrop) return;
+      modalCard = card;
+      const slot = card.dataset.highlightIndex || card.dataset.slot || '';
+      modalTitle.textContent = `Highlight ${slot}`;
+      titleInput.value = card.querySelector('input.highlight-title')?.value || '';
+      dateInput.value = card.querySelector('input.highlight-date')?.value || '';
+      descInput.value = card.querySelector('textarea.highlight-description')?.value || '';
+      backdrop.style.display = 'flex';
+      backdrop.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('highlight-modal-open');
+      setPasteStatus('');
+      if (pasteImageBtn) pasteImageBtn.disabled = false;
+      titleInput.focus();
+    }
+
+    function closeModal() {
+      modalCard = null;
+      if (!backdrop) return;
+      backdrop.style.display = 'none';
+      backdrop.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('highlight-modal-open');
+      setPasteStatus('');
+    }
+
+    function applyModal() {
+      if (!modalCard) return closeModal();
+      const cardTitle = modalCard.querySelector('input.highlight-title');
+      const cardDate = modalCard.querySelector('input.highlight-date');
+      const cardDesc = modalCard.querySelector('textarea.highlight-description');
+      if (cardTitle) cardTitle.value = titleInput.value;
+      if (cardDate) cardDate.value = dateInput.value;
+      if (cardDesc) cardDesc.value = descInput.value;
+      const summaryTitle = modalCard.querySelector('.highlight-summary-title');
+      const summaryMeta = modalCard.querySelector('.highlight-summary-meta');
+      const slot = modalCard.dataset.highlightIndex || modalCard.dataset.slot || '';
+      if (summaryTitle) summaryTitle.textContent = (titleInput.value || '').trim() ? titleInput.value.trim() : `Highlight ${slot}`;
+      if (summaryMeta) summaryMeta.textContent = `${dateInput.value || 'No date yet'} · Click card to edit`;
+      closeModal();
+    }
+
+    closeBtn?.addEventListener('click', closeModal);
+    cancelBtn?.addEventListener('click', closeModal);
+    applyBtn?.addEventListener('click', applyModal);
+    backdrop?.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+    pasteImageBtn?.addEventListener('click', async () => {
+      if (!modalCard) return;
+      try {
+        setPasteStatus('Reading clipboard...');
+        const file = await readImageFileFromClipboard();
+        if (!file || !file.type?.startsWith('image/')) throw new Error('Clipboard does not contain an image.');
+        setCardImageFile(modalCard, file);
+        setPasteStatus('Image pasted.');
+      } catch (error) {
+        setPasteStatus(error?.message || 'Unable to read image from clipboard.', true);
+      }
+    });
+
+    document.addEventListener('paste', (event) => {
+      if (!modalCard) return;
+      const items = Array.from(event.clipboardData?.items || []);
+      const imageItem = items.find((item) => item.type && item.type.startsWith('image/'));
+      if (!imageItem) return;
+      const file = imageItem.getAsFile();
+      if (!file) return;
+      event.preventDefault();
+      setCardImageFile(modalCard, file);
+      setPasteStatus('Image pasted.');
+    });
+
+    // Prevent dropping files from navigating away from the dashboard.
+    const preventFileNavigate = (event) => {
+      if (event.dataTransfer && (event.dataTransfer.files?.length || Array.from(event.dataTransfer.types || []).includes('Files'))) {
+        event.preventDefault();
+      }
+    };
+    document.addEventListener('dragover', preventFileNavigate);
+    document.addEventListener('drop', preventFileNavigate);
+
+    cards.forEach((card, index) => {
+      // Initialize dataset image to the server-provided image path for swapping.
+      card.dataset.image = card.dataset.image || '';
+      setHiddenImagePath(card, card.querySelector('.highlight-image-path')?.value || '');
+
+      const imageZone = card.querySelector('.dashboard-section-top');
+
+      // Ensure image selection always updates the preview (even if inline onchange doesn't fire).
+      const fileInput = card.querySelector('input[type=\"file\"][accept^=\"image/\"]');
+      if (fileInput) {
+        fileInput.addEventListener('change', (event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          previewFileInCard(card, file);
+        });
+      }
+
+      card.addEventListener('click', (event) => {
+        if (suppressNextClick) {
+          suppressNextClick = false;
+          return;
+        }
+        // Clicking the image/file controls should not open the modal.
+        const target = event.target;
+        if (
+          (target && (target.closest('.dashboard-section-top') || target.matches('label[for^="image-upload-"]') || target.matches('input[type="file"]'))) ||
+          (target && target.closest && target.closest('label[for^="image-upload-"]'))
+        ) {
+          return;
+        }
+        openModal(card);
+      });
+
+      card.addEventListener('dragstart', (event) => {
+        draggedCard = card;
+        event.dataTransfer.effectAllowed = 'move';
+        // Required by Firefox to start dragging.
+        try { event.dataTransfer.setData('text/plain', card.id || 'highlight'); } catch (e) {}
+      });
+
+      card.addEventListener('dragend', () => {
+        // Dragging often ends with a click; don't open the modal on that click.
+        suppressNextClick = true;
+        setTimeout(() => { suppressNextClick = false; }, 0);
+      });
+
+      card.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      });
+
+      card.addEventListener('drop', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const file = event.dataTransfer?.files?.[0];
+        if (file && file.type && file.type.startsWith('image/')) {
+          if (fileInput) {
+            try {
+              const dt = new DataTransfer();
+              dt.items.add(file);
+              fileInput.files = dt.files;
+            } catch (error) {
+              // Preview still works; user may need to re-select the image for older browsers.
+            }
+          }
+          previewFileInCard(card, file);
+          return;
+        }
+
+        const targetCard = card;
+        if (!draggedCard || draggedCard === targetCard) return;
+        swapCardContent(draggedCard, targetCard);
+      });
+
+      // Also enable dropping images on the image area specifically.
+      if (imageZone) {
+        imageZone.addEventListener('dragover', (event) => event.preventDefault());
+        imageZone.addEventListener('drop', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const droppedFile = event.dataTransfer?.files?.[0];
+          if (!droppedFile || !droppedFile.type?.startsWith('image/')) return;
+          const fileInput = card.querySelector('input[type="file"][accept^="image/"]');
+          if (fileInput) {
+            try {
+              const dt = new DataTransfer();
+              dt.items.add(droppedFile);
+              fileInput.files = dt.files;
+            } catch (error) {}
+          }
+          previewFileInCard(card, droppedFile);
+        });
+      }
+    });
+  })();
+</script>
+
+<section class="dashboard-section-monitor">
+  <div class="section-monitor-head">
+    <div>
+      <p class="eyebrow">Section health</p>
+      <h2>Compliance Monitoring</h2>
+    </div>
+    <a class="btn-outline small" href="/executive/sections">View All Sections</a>
+  </div>
+  <div class="dashboard-section-grid">
+    <% sections.forEach((section) => { const pay = pct(section.money_paid, section.money_total); const req = pct(section.requirement_verified, section.requirement_total); const overall = sectionProgress(section); %>
+      <article class="dashboard-section-card">
+        <div class="dashboard-section-top">
+          <div>
+            <span><%= section.representative %></span>
+            <h3><%= section.section_name %></h3>
+          </div>
+          <span class="badge <%= Number(section.pending_reviews) > 0 ? 'yellow' : 'green' %>"><%= section.pending_reviews %> pending</span>
+        </div>
+        <div class="dashboard-section-progress">
+          <strong><%= overall %>% complete</strong>
+          <div class="progress wide"><span style="width:<%= overall %>%"></span></div>
+        </div>
+        <div class="dashboard-section-stats">
+          <div><span>Members</span><strong><%= section.member_count %></strong></div>
+          <div><span>Requirements</span><strong><%= req %>%</strong></div>
+          <div><span>Payments</span><strong><%= pay %>%</strong></div>
+          <div><span>Outstanding</span><strong>PHP <%= Number(section.unpaid_balance || 0).toLocaleString(undefined, {minimumFractionDigits: 2}) %></strong></div>
+        </div>
+        <a class="btn small" href="/representative/section-detail?id=<%= section.id %>">Open Section</a>
+      </article>
+    <% }) %>
+  </div>
+</section>
+<%- include('../partials/app-footer') %>
